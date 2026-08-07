@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 
 export default function Login({ onAuthSuccess, onNavigate }) {
+  useEffect(() => {
+    document.documentElement.style.overflow = 'auto';
+    document.body.style.overflow = 'auto';
+    return () => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    };
+  }, []);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1); // 1 = Phone input, 2 = OTP input

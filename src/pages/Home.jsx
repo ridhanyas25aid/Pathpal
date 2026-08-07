@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export default function Home({ user, onNavigate }) {
+  useEffect(() => {
+    document.documentElement.style.overflow = 'auto';
+    document.body.style.overflow = 'auto';
+    return () => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    };
+  }, []);
   const handleLaunch = () => {
     if (user) {
       onNavigate("dashboard");

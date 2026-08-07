@@ -16,6 +16,15 @@ export default function ProfileSetup({ user, onProfileSuccess }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    document.documentElement.style.overflow = 'auto';
+    document.body.style.overflow = 'auto';
+    return () => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) return;
