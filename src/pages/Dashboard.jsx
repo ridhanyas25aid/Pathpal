@@ -89,6 +89,25 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
   const reportMarkerRef = useRef(null);
   const [submittingReport, setSubmittingReport] = useState(false);
 
+  // Voice Announcements State
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  // Helper to read text out loud
+  const speakAlert = (text) => {
+    if (!voiceEnabled || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      // Remove emojis from the text before speaking
+      const plainText = text.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, "");
+      const utterance = new SpeechSynthesisUtterance(plainText);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Speech Synthesis failed:", e);
+    }
+  };
+
   // Chatbot States
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -425,6 +444,9 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
     try {
       const data = await computeCustomRoutes(startCoords, endCoords, streetlights, crimes, reports);
       setRoutes(data);
+      if (data && data.safest) {
+        speakAlert(`Safest route computed. Safety rating is ${data.safest.safety_score} out of 100. It features ${data.safest.lighting_pct} percent lit streets. Estimated travel time is ${data.safest.time_min} minutes.`);
+      }
 
       if (!mapInstance.current) return;
 
@@ -579,6 +601,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
   // --- Emergency SOS sequence (Oscillator Siren Audio API) ---
   const triggerSOSAlert = async () => {
     setSosActive(true);
+    speakAlert("Emergency S O S activated. Audiosiren triggered. Syncing real-time GPS location.");
 
     let emergencyNum = "112";
     let nameStr = "User";
@@ -667,6 +690,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
     } catch (e) {}
     
     setSosActive(false);
+    speakAlert("Emergency alarm deactivated. Standby state restored.");
   };
 
   // --- Chatbot Messaging Logic ---
@@ -967,6 +991,14 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
                 </div>
                 <input type="checkbox" checked={showStreetlightPins} onChange={(e) => setShowStreetlightPins(e.target.checked)} />
               </label>
+
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-volume-high" style={{ color: '#06b6d4', marginRight: '6px' }}></i>
+                  <span>Voice Safety Prompts</span>
+                </div>
+                <input type="checkbox" checked={voiceEnabled} onChange={(e) => setVoiceEnabled(e.target.checked)} />
+              </label>
             </div>
           </div>
 
@@ -1144,7 +1176,34 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
                   whiteSpace: 'pre-line',
                   boxShadow: msg.sender === 'user' ? '0 2px 8px rgba(6,182,212,0.2)' : 'none'
                 }}>
-                  <div>{msg.text}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <span style={{ flex: 1 }}>{msg.text}</span>
+                    {msg.sender === 'bot' && (
+                      <button
+                        type="button"
+                        onClick={() => speakAlert(msg.text)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#22d3ee',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.6,
+                          transition: 'opacity 0.2s',
+                          marginTop: '2px'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.6; }}
+                        title="Listen to response"
+                      >
+                        <i className="fa-solid fa-volume-high"></i>
+                      </button>
+                    )}
+                  </div>
                   {msg.actions && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
                       {msg.actions.map((act, aIdx) => (
