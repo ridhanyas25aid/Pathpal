@@ -103,10 +103,11 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
   // --- Load Dynamic Spatial Datasets ---
   useEffect(() => {
+    const base = import.meta.env.BASE_URL || "/";
     Promise.all([
-      fetch('/data/streetlights.json').then(res => res.json()),
-      fetch('/data/tamilnadu_real_crime.json').then(res => res.json()),
-      fetch('/data/tamilnadu.geojson').then(res => res.json())
+      fetch(`${base}data/streetlights.json`).then(res => res.json()),
+      fetch(`${base}data/tamilnadu_real_crime.json`).then(res => res.json()),
+      fetch(`${base}data/tamilnadu.geojson`).then(res => res.json())
     ])
     .then(([streetlightData, crimeData, geoJson]) => {
       setStreetlights(streetlightData);
