@@ -969,7 +969,6 @@ input:checked + .slider:before {
 
 .btn-dev-bypass {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
   height: 40px;
   padding: 0 16px;
@@ -985,9 +984,37 @@ input:checked + .slider:before {
   box-sizing: border-box;
 }
 
-.btn-dev-bypass:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: white;
+.btn-dev-bypass.user-bypass {
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.03);
+}
+.btn-dev-bypass.user-bypass:hover {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: #06b6d4;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
   transform: translateY(-1px);
+}
+
+.btn-dev-bypass.admin-bypass {
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.03);
+}
+.btn-dev-bypass.admin-bypass:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: #a78bfa;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+  transform: translateY(-1px);
+}
+
+.info-footer {
+  text-align: center;
+  margin-top: 25px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-dim, #64748b);
+  opacity: 0.65;
+  z-index: 1;
+  position: relative;
 }

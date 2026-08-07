@@ -175,14 +175,14 @@ export default function Login({ onAuthSuccess }) {
               <button
                 type="button"
                 onClick={() => handleDevBypass(false)}
-                className="btn-dev-bypass"
+                className="btn-dev-bypass user-bypass"
               >
                 🚀 Login as User
               </button>
               <button
                 type="button"
                 onClick={() => handleDevBypass(true)}
-                className="btn-dev-bypass"
+                className="btn-dev-bypass admin-bypass"
               >
                 👑 Login as Admin
               </button>
