@@ -818,10 +818,13 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
           {calculatingRoutes ? (
             <div className="no-data"><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i> Calculating safest path...</div>
           ) : routes ? (
-            <>
-              <div id="safest-route-card" className="route-card recommended">
-                <div className="route-badge badge-safe">🛡️ Safest AI Route Recommended</div>
-                <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Safe corridor path</div>
+            <div className="routes-comparison-container">
+              <div id="safest-route-card" className="route-card safest">
+                <div className="route-badge badge-safe">
+                  <i className="fa-solid fa-shield-halved" style={{ marginRight: '4px' }}></i>
+                  <span>Safest AI Route Recommended</span>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px', color: 'var(--text-main)' }}>Safe corridor path</div>
                 <div className="route-desc">{routes.safest.description}</div>
                 <div className="route-metrics-grid">
                   <div className="metric-item">
@@ -839,9 +842,12 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
                 </div>
               </div>
 
-              <div id="fastest-route-card" className="route-card">
-                <div className="route-badge badge-fast">⚡ Fastest Route</div>
-                <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Shortest distance path</div>
+              <div id="fastest-route-card" className="route-card fastest">
+                <div className="route-badge badge-fast">
+                  <i className="fa-solid fa-bolt" style={{ marginRight: '4px' }}></i>
+                  <span>Fastest Route</span>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px', color: 'var(--text-main)' }}>Shortest distance path</div>
                 <div className="route-desc">{routes.fastest.description}</div>
                 <div className="route-metrics-grid">
                   <div className="metric-item">
@@ -858,7 +864,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             <div className="no-data">Select a route or search coordinates.</div>
           )}
