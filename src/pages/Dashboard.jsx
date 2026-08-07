@@ -92,8 +92,18 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
   // Chatbot States
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [chatTyping, setChatTyping] = useState(false);
   const [chatMessages, setChatMessages] = useState([
-    { sender: 'bot', text: "Hello! I am your PathPal Safety Assistant. How can I help you navigate safely across Tamil Nadu today?" }
+    {
+      sender: 'bot',
+      text: "Hello! I am your PathPal Safety Assistant. Ask me anything about routes, safety metrics, or hazard reports! Or click one of the actions below to query overlays dynamically:",
+      actions: [
+        { label: "📍 Toggle Crime Heatmap", type: "toggle_crime_heat" },
+        { label: "💡 Toggle Smartlight Grid", type: "toggle_light_heat" },
+        { label: "⚠️ File Safety Report", type: "open_report" },
+        { label: "🚨 Run SOS Audio Guide", type: "trigger_sos" }
+      ]
+    }
   ]);
   const chatMessagesEndRef = useRef(null);
 
@@ -660,6 +670,26 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
   };
 
   // --- Chatbot Messaging Logic ---
+  const handleChatAction = (type) => {
+    if (type === "toggle_crime_heat") {
+      setShowCrimeHeat(prev => !prev);
+      addBotFeedback("📍 Toggled Crime Hotspots heatmap overlay! Check the map in the background.");
+    } else if (type === "toggle_light_heat") {
+      setShowLightHeat(prev => !prev);
+      addBotFeedback("💡 Toggled Smartlight Density Grid overlay! Check the map in the background.");
+    } else if (type === "open_report") {
+      setShowReportModal(true);
+      addBotFeedback("📝 Opened safety hazard report modal. Choose coordinates on the map and submit.");
+    } else if (type === "trigger_sos") {
+      triggerSOSAlert();
+      addBotFeedback("🚨 SOS alert initiated! Oscillator siren triggered and emergency logs updated.");
+    }
+  };
+
+  const addBotFeedback = (txt) => {
+    setChatMessages(prev => [...prev, { sender: 'bot', text: txt }]);
+  };
+
   const handleSendChatMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -668,28 +698,53 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
     const newMessages = [...chatMessages, { sender: 'user', text: userMsg }];
     setChatMessages(newMessages);
     setChatInput("");
+    setChatTyping(true);
 
     // Simple keyword-matching safety bot engine
     setTimeout(() => {
       let botResponse = "";
+      let botActions = null;
       const lower = userMsg.toLowerCase();
 
       if (lower.includes("sos") || lower.includes("emergency") || lower.includes("alarm") || lower.includes("siren")) {
-        botResponse = "🚨 To trigger an SOS alert, click the floating red 'SOS' button on the map dashboard. This will sound an audible siren, share your live GPS coordinates with our database, and dial your emergency contact immediately.";
-      } else if (lower.includes("crime") || lower.includes("unsafe") || lower.includes("danger") || lower.includes("police")) {
-        botResponse = `🛡️ I have analyzed the safety datasets. There are currently ${crimes.length} historical crime incidents mapped across Tamil Nadu. We recommend using our 'Safest AI Route' (green polyline) to avoid crime hotspots and unlit corridors.`;
-      } else if (lower.includes("light") || lower.includes("dark") || lower.includes("outage") || lower.includes("illumination")) {
-        botResponse = `💡 Streetlight coverage check: We track ${streetlights.length} streetlight nodes. Toggle the 'Smartlight Density Grid' or 'Streetlight Node Pins' in the overlays list to inspect lighting coverage along your path.`;
-      } else if (lower.includes("report") || lower.includes("broken") || lower.includes("hazard")) {
-        botResponse = "📝 You can report active hazards! Click the blue 'Report Safety Hazard' button in the sidebar, click 'Pick Point on Map' to set coordinates, fill out the form, and submit. An administrator will review and approve it shortly.";
-      } else if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey") || lower.includes("help")) {
-        botResponse = "Hello! I am your PathPal Safety Assistant. Ask me anything about your route, safety metrics, SOS triggers, or hazard reporting!";
+        botResponse = "🚨 SOS Trigger Alert:\nClick the floating red SOS button or select below to activate the frequency oscillator siren, log incident GPS coordinates, and notify emergency contacts:";
+        botActions = [
+          { label: "🚨 Trigger Emergency SOS Now", type: "trigger_sos" }
+        ];
+      } else if (lower.includes("crime") || lower.includes("unsafe") || lower.includes("danger") || lower.includes("police") || lower.includes("hotspot")) {
+        botResponse = `🛡️ AI Crime Mapping Check:\nWe are tracking ${crimes.length} historical incident records in Tamil Nadu. Click below to toggle crime heatmaps or pins:`;
+        botActions = [
+          { label: "📍 Toggle Crime Heatmap", type: "toggle_crime_heat" }
+        ];
+      } else if (lower.includes("light") || lower.includes("dark") || lower.includes("outage") || lower.includes("illumination") || lower.includes("bulb")) {
+        botResponse = `💡 Streetlight Node Coverage:\nWe monitor ${streetlights.length} lighting nodes. You can inspect illumination maps:`;
+        botActions = [
+          { label: "💡 Toggle Smartlight Grid", type: "toggle_light_heat" }
+        ];
+      } else if (lower.includes("report") || lower.includes("broken") || lower.includes("hazard") || lower.includes("incident") || lower.includes("file")) {
+        botResponse = "📝 Hazard Reporter Tool:\nYou can pin dangerous locations, unlit alleys, or traffic blocks. Click below to file a report directly:";
+        botActions = [
+          { label: "⚠️ Open Hazard Report Form", type: "open_report" }
+        ];
+      } else if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey") || lower.includes("help") || lower.includes("about")) {
+        botResponse = "Hello! I am your PathPal Safety Assistant. Ask me safety questions, toggle map settings, or file community reports:";
+        botActions = [
+          { label: "📍 Toggle Crime Heatmap", type: "toggle_crime_heat" },
+          { label: "💡 Toggle Smartlight Grid", type: "toggle_light_heat" },
+          { label: "⚠️ File Safety Report", type: "open_report" }
+        ];
       } else {
-        botResponse = "I can assist you with Tamil Nadu route safety. Try asking:\n- 'How do I trigger an SOS alert?'\n- 'Where are the crime hotspots?'\n- 'How do I report a broken streetlight?'";
+        botResponse = "I can assist you with Tamil Nadu route safety and map overlays. Choose a quick utility:";
+        botActions = [
+          { label: "📍 Toggle Crime Heatmap", type: "toggle_crime_heat" },
+          { label: "💡 Toggle Smartlight Grid", type: "toggle_light_heat" },
+          { label: "⚠️ File Safety Report", type: "open_report" }
+        ];
       }
 
-      setChatMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
-    }, 600);
+      setChatMessages(prev => [...prev, { sender: 'bot', text: botResponse, actions: botActions }]);
+      setChatTyping(false);
+    }, 1000);
   };
 
   return (
@@ -1089,10 +1144,53 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
                   whiteSpace: 'pre-line',
                   boxShadow: msg.sender === 'user' ? '0 2px 8px rgba(6,182,212,0.2)' : 'none'
                 }}>
-                  {msg.text}
+                  <div>{msg.text}</div>
+                  {msg.actions && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
+                      {msg.actions.map((act, aIdx) => (
+                        <button
+                          key={aIdx}
+                          type="button"
+                          onClick={() => handleChatAction(act.type)}
+                          style={{
+                            background: 'rgba(6, 182, 212, 0.1)',
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            borderRadius: '20px',
+                            color: '#22d3ee',
+                            padding: '4px 10px',
+                            fontSize: '10.5px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {act.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+            {chatTyping && (
+              <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+                <div style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#cbd5e1',
+                  padding: '10px 14px',
+                  borderRadius: '12px 12px 12px 2px',
+                  fontSize: '12.5px',
+                  lineHeight: '1.4',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span className="dot fa-beat" style={{ fontSize: '6px' }}>●</span>
+                  <span className="dot fa-beat" style={{ fontSize: '6px', animationDelay: '0.2s' }}>●</span>
+                  <span className="dot fa-beat" style={{ fontSize: '6px', animationDelay: '0.4s' }}>●</span>
+                </div>
+              </div>
+            )}
             <div ref={chatMessagesEndRef}></div>
           </div>
 
