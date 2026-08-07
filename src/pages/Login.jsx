@@ -175,32 +175,14 @@ export default function Login({ onAuthSuccess }) {
               <button
                 type="button"
                 onClick={() => handleDevBypass(false)}
-                style={{
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  border: '1px solid rgba(6, 182, 212, 0.2)',
-                  color: '#06b6d4',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                className="btn-dev-bypass"
               >
                 🚀 Login as User
               </button>
               <button
                 type="button"
                 onClick={() => handleDevBypass(true)}
-                style={{
-                  background: 'rgba(139, 92, 246, 0.1)',
-                  border: '1px solid rgba(139, 92, 246, 0.2)',
-                  color: '#a78bfa',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                className="btn-dev-bypass"
               >
                 👑 Login as Admin
               </button>
