@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabase';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import ProfileSetup from './pages/ProfileSetup';
 import Dashboard from './pages/Dashboard';
@@ -9,7 +10,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("user");
   const [profileComplete, setProfileComplete] = useState(false);
-  const [page, setPage] = useState("login"); // 'login' | 'profile' | 'dashboard' | 'admin'
+  const [page, setPage] = useState("home"); // 'home' | 'login' | 'profile' | 'dashboard' | 'admin'
   const [checkingSession, setCheckingSession] = useState(true);
 
   // Initialize and check active session
@@ -30,7 +31,7 @@ export default function App() {
         setUser(null);
         setRole("user");
         setProfileComplete(false);
-        setPage("login");
+        setPage("home");
         setCheckingSession(false);
       }
     });
@@ -94,7 +95,7 @@ export default function App() {
     setUser(null);
     setRole("user");
     setProfileComplete(false);
-    setPage("login");
+    setPage("home");
   };
 
   if (checkingSession) {
@@ -118,7 +119,8 @@ export default function App() {
 
   return (
     <>
-      {page === "login" && <Login onAuthSuccess={handleAuthSuccess} />}
+      {page === "home" && <Home user={user} onNavigate={setPage} />}
+      {page === "login" && <Login onAuthSuccess={handleAuthSuccess} onNavigate={setPage} />}
       {page === "profile" && <ProfileSetup user={user} onProfileSuccess={handleProfileSuccess} />}
       {page === "dashboard" && <Dashboard user={user} role={role} onNavigate={setPage} onLogout={handleLogout} />}
       {page === "admin" && role === "admin" && <AdminPanel onNavigate={setPage} />}

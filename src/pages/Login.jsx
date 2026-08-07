@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 
-export default function Login({ onAuthSuccess }) {
+export default function Login({ onAuthSuccess, onNavigate }) {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1); // 1 = Phone input, 2 = OTP input
@@ -82,6 +82,18 @@ export default function Login({ onAuthSuccess }) {
 
   return (
     <div className="login-page-container">
+      {onNavigate && (
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("home");
+          }}
+          className="btn-back-home"
+        >
+          <i className="fa-solid fa-arrow-left"></i> Back to Home
+        </a>
+      )}
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
