@@ -81,133 +81,135 @@ export default function Login({ onAuthSuccess }) {
   };
 
   return (
-    <div className="login-wrapper">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="login-logo">
-            <i className="fa-solid fa-shield-halved"></i>
+    <div className="login-page-container">
+      <div className="login-wrapper">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="login-logo">
+              <i className="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 className="login-title">Path Pal AI</h2>
+            <div className="login-subtitle">AI Powered Smart Safe Route Navigation System</div>
           </div>
-          <h2 className="login-title">Path Pal AI</h2>
-          <div className="login-subtitle">AI Powered Smart Safe Route Navigation System</div>
-        </div>
 
-        {step === 1 ? (
-          <form onSubmit={handleSendOtp} className="slide-section active">
-            <div className="form-group">
-              <label className="form-label">Enter Mobile Number</label>
-              <div className="phone-input-container">
-                <div className="country-code">+91</div>
+          {step === 1 ? (
+            <form onSubmit={handleSendOtp} className="slide-section active">
+              <div className="form-group">
+                <label className="form-label">Enter Mobile Number</label>
+                <div className="phone-input-container">
+                  <div className="country-code">+91</div>
+                  <input
+                    type="tel"
+                    className="input-field"
+                    placeholder="10-digit number"
+                    maxLength="10"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-login" disabled={phone.length !== 10 || loading}>
+                {loading ? (
+                  <>
+                    <span>Sending...</span> <i className="fa-solid fa-spinner fa-spin"></i>
+                  </>
+                ) : (
+                  <>
+                    <span>Send OTP</span> <i className="fa-solid fa-arrow-right"></i>
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="slide-section active">
+              <div className="form-group">
+                <label className="form-label">Enter 6-Digit OTP</label>
                 <input
-                  type="tel"
+                  type="text"
                   className="input-field"
-                  placeholder="10-digit number"
-                  maxLength="10"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                  placeholder="xxxxxx"
+                  maxLength="6"
+                  style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '0.3em' }}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   autoComplete="off"
                   required
                 />
               </div>
-            </div>
 
-            <button type="submit" className="btn-login" disabled={phone.length !== 10 || loading}>
-              {loading ? (
-                <>
-                  <span>Sending...</span> <i className="fa-solid fa-spinner fa-spin"></i>
-                </>
-              ) : (
-                <>
-                  <span>Send OTP</span> <i className="fa-solid fa-arrow-right"></i>
-                </>
-              )}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyOtp} className="slide-section active">
-            <div className="form-group">
-              <label className="form-label">Enter 6-Digit OTP</label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="xxxxxx"
-                maxLength="6"
-                style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '0.3em' }}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                autoComplete="off"
-                required
-              />
-            </div>
+              <button type="submit" className="btn-login" disabled={otp.length !== 6 || loading}>
+                {loading ? (
+                  <>
+                    <span>Verifying...</span> <i className="fa-solid fa-spinner fa-spin"></i>
+                  </>
+                ) : (
+                  <>
+                    <span>Verify OTP</span> <i className="fa-solid fa-check"></i>
+                  </>
+                )}
+              </button>
 
-            <button type="submit" className="btn-login" disabled={otp.length !== 6 || loading}>
-              {loading ? (
-                <>
-                  <span>Verifying...</span> <i className="fa-solid fa-spinner fa-spin"></i>
-                </>
-              ) : (
-                <>
-                  <span>Verify OTP</span> <i className="fa-solid fa-check"></i>
-                </>
-              )}
-            </button>
+              <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setStep(1);
+                    setOtp("");
+                  }}
+                  style={{ color: '#06b6d4', fontSize: '13px', decoration: 'none' }}
+                >
+                  Change phone number
+                </a>
+              </div>
+            </form>
+          )}
 
-            <div style={{ textAlign: 'center', marginTop: '15px' }}>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setStep(1);
-                  setOtp("");
+          {/* Developer Bypass Panel */}
+          <div style={{ textAlign: 'center', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '15px' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>DEVELOPER BYPASS FOR LOCAL TESTING</div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => handleDevBypass(false)}
+                style={{
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  border: '1px solid rgba(6, 182, 212, 0.2)',
+                  color: '#06b6d4',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
-                style={{ color: '#06b6d4', fontSize: '13px', decoration: 'none' }}
               >
-                Change phone number
-              </a>
+                🚀 Login as User
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDevBypass(true)}
+                style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid rgba(139, 92, 246, 0.2)',
+                  color: '#a78bfa',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                👑 Login as Admin
+              </button>
             </div>
-          </form>
-        )}
-
-        {/* Developer Bypass Panel */}
-        <div style={{ textAlign: 'center', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '15px' }}>
-          <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>DEVELOPER BYPASS FOR LOCAL TESTING</div>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button
-              type="button"
-              onClick={() => handleDevBypass(false)}
-              style={{
-                background: 'rgba(6, 182, 212, 0.1)',
-                border: '1px solid rgba(6, 182, 212, 0.2)',
-                color: '#06b6d4',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              🚀 Login as User
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDevBypass(true)}
-              style={{
-                background: 'rgba(139, 92, 246, 0.1)',
-                border: '1px solid rgba(139, 92, 246, 0.2)',
-                color: '#a78bfa',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              👑 Login as Admin
-            </button>
           </div>
-        </div>
 
-        <div className="info-footer">
-          Secured by Supabase Phone Authentication. By signing in, you agree to enable emergency SOS location tracking.
+          <div className="info-footer">
+            Secured by Supabase Phone Authentication. By signing in, you agree to enable emergency SOS location tracking.
+          </div>
         </div>
       </div>
     </div>
