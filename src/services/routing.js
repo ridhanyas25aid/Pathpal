@@ -92,6 +92,11 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
 
     let isNearRoute = false;
     for (const pt of routeSamples) {
+      // Quick square degree pre-filter (0.000015 ≈ 420m buffer)
+      const dLat = pt[0] - slLat;
+      const dLng = pt[1] - slLng;
+      if (dLat * dLat + dLng * dLng > 0.000015) continue;
+
       if (haversineDistance(pt[0], pt[1], slLat, slLng) <= 0.3) {
         isNearRoute = true;
         break;
@@ -108,6 +113,11 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
     if (rep.type === "Broken Streetlight") {
       let isNearRoute = false;
       for (const pt of routeSamples) {
+        // Quick square degree pre-filter
+        const dLat = pt[0] - rep.latitude;
+        const dLng = pt[1] - rep.longitude;
+        if (dLat * dLat + dLng * dLng > 0.000015) continue;
+
         if (haversineDistance(pt[0], pt[1], rep.latitude, rep.longitude) <= 0.3) {
           isNearRoute = true;
           break;
@@ -123,6 +133,11 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
   localCrimes.forEach((crm) => {
     let minDistance = 999;
     for (const pt of routeSamples) {
+      // Quick square degree pre-filter (0.00002 ≈ 490m buffer)
+      const dLat = pt[0] - crm.Latitude;
+      const dLng = pt[1] - crm.Longitude;
+      if (dLat * dLat + dLng * dLng > 0.00002) continue;
+
       const d = haversineDistance(pt[0], pt[1], crm.Latitude, crm.Longitude);
       if (d < minDistance) minDistance = d;
     }
@@ -144,6 +159,11 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
     if (rep.type !== "Broken Streetlight") {
       let minDistance = 999;
       for (const pt of routeSamples) {
+        // Quick square degree pre-filter
+        const dLat = pt[0] - rep.latitude;
+        const dLng = pt[1] - rep.longitude;
+        if (dLat * dLat + dLng * dLng > 0.00002) continue;
+
         const d = haversineDistance(pt[0], pt[1], rep.latitude, rep.longitude);
         if (d < minDistance) minDistance = d;
       }
