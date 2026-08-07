@@ -866,50 +866,149 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
           {/* Map Layer Toggles */}
           <div className="control-card">
             <div className="section-title"><span><i className="fa-solid fa-layer-group"></i> Toggle Map Overlays</span></div>
-            <div className="layer-toggles-grid">
-              <label className="toggle-item">
+            <div className="layer-toggle-group">
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-map" style={{ color: '#3b82f6', marginRight: '6px' }}></i>
+                  <span>TN State Boundaries</span>
+                </div>
                 <input type="checkbox" checked={showBoundary} onChange={(e) => setShowBoundary(e.target.checked)} />
-                <span>TN State Boundaries</span>
               </label>
-              <label className="toggle-item">
+
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-lightbulb" style={{ color: '#fbbf24', marginRight: '6px' }}></i>
+                  <span>Smartlight Grid</span>
+                </div>
                 <input type="checkbox" checked={showLightHeat} onChange={(e) => setShowLightHeat(e.target.checked)} />
-                <span>Smartlight Density Grid</span>
               </label>
-              <label className="toggle-item">
+
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-fire" style={{ color: '#ef4444', marginRight: '6px' }}></i>
+                  <span>Crime Hotspots</span>
+                </div>
                 <input type="checkbox" checked={showCrimeHeat} onChange={(e) => setShowCrimeHeat(e.target.checked)} />
-                <span>Crime Hotspot Map</span>
               </label>
-              <label className="toggle-item">
+
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-triangle-exclamation" style={{ color: '#f87171', marginRight: '6px' }}></i>
+                  <span>Crime Incident Pins</span>
+                </div>
                 <input type="checkbox" checked={showCrimePins} onChange={(e) => setShowCrimePins(e.target.checked)} />
-                <span>Crime Incident Pins</span>
               </label>
-              <label className="toggle-item">
+
+              <label className="layer-toggle-item">
+                <div className="layer-info">
+                  <i className="fa-solid fa-circle-dot" style={{ color: '#34d399', marginRight: '6px' }}></i>
+                  <span>Streetlight Node Pins</span>
+                </div>
                 <input type="checkbox" checked={showStreetlightPins} onChange={(e) => setShowStreetlightPins(e.target.checked)} />
-                <span>Streetlight Node Pins</span>
               </label>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '15px' }}>
-            <button onClick={() => setShowReportModal(true)} className="btn-login" style={{ background: '#3b82f6' }}>
-              <i className="fa-solid fa-bullhorn" style={{ marginRight: '6px' }}></i> Report Safety Hazard
+          {/* Lower Action buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+            <button 
+              onClick={() => setShowReportModal(true)} 
+              style={{
+                width: '100%',
+                height: '42px',
+                background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'none';
+                e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)';
+              }}
+            >
+              <i className="fa-solid fa-bullhorn"></i> Report Safety Hazard
             </button>
             
             {role === "admin" && (
-              <button onClick={() => onNavigate('admin')} className="btn-login" style={{ background: '#8b5cf6' }}>
-                <i className="fa-solid fa-users-gear" style={{ marginRight: '6px' }}></i> Administrator Portal
+              <button 
+                onClick={() => onNavigate('admin')} 
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  background: 'rgba(139, 92, 246, 0.15)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '10px',
+                  color: '#c084fc',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(139, 92, 246, 0.25)';
+                  e.target.style.borderColor = '#c084fc';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(139, 92, 246, 0.15)';
+                  e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                }}
+              >
+                <i className="fa-solid fa-users-gear"></i> Administrator Portal
               </button>
             )}
 
-            <button onClick={onLogout} className="btn-login" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <i className="fa-solid fa-arrow-right-from-bracket" style={{ marginRight: '6px' }}></i> Log Out
+            <button 
+              onClick={onLogout} 
+              style={{
+                width: '100%',
+                height: '42px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px',
+                color: '#94a3b8',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255,255,255,0.08)';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255,255,255,0.04)';
+                e.target.style.color = '#94a3b8';
+              }}
+            >
+              <i className="fa-solid fa-arrow-right-from-bracket"></i> Log Out
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Floating SOS Trigger button */}
-      <button onClick={triggerSOSAlert} className="btn-sos-floating">SOS</button>
+      {/* Floating SOS Trigger button (Pulsing emergency overlay circle) */}
+      <button onClick={triggerSOSAlert} className="sos-floating-button">SOS</button>
 
       {/* Map Container */}
       <main id="map" ref={mapRef} style={{ background: '#020617', flex: 1, height: '100%' }}></main>
