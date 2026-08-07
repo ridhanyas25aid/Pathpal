@@ -1,51 +1,46 @@
 @echo off
 echo ==============================================
-echo Pushing Path Pal AI to GitHub Repository
+echo Pushing React App to GitHub Repository
 echo ==============================================
 echo.
 
-:: Check if git is available
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Git was recently installed. Refreshing environment variables...
-    :: Add default Git install path to session variable in case PATH hasn't updated yet
-    set "PATH=%PATH%;C:\Program Files\Git\cmd"
-)
+set "GIT_EXE=C:\Users\ridha\OneDrive\Desktop\Project\bin\git\cmd\git.exe"
 
-:: Re-verify git
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Git was not found in standard system PATH.
-    echo Please restart your computer or command prompt to refresh system variables, then run push.bat again.
-    pause
-    exit /b
+if not exist "%GIT_EXE%" (
+    echo Portable Git was not found at %GIT_EXE%!
+    echo Standard checkout...
+    set "GIT_EXE=git"
 )
 
 echo Initializing local Git repository...
-git init
+"%GIT_EXE%" init
+
+echo Configuring Git local user metadata...
+"%GIT_EXE%" config user.name "ridhanyas25aid"
+"%GIT_EXE%" config user.email "ridha@example.com"
 
 echo Configuring remote origin to https://github.com/ridhanyas25aid/Pathpal.git...
-git remote remove origin >nul 2>nul
-git remote add origin https://github.com/ridhanyas25aid/Pathpal.git
+"%GIT_EXE%" remote remove origin >nul 2>nul
+"%GIT_EXE%" remote add origin https://github.com/ridhanyas25aid/Pathpal.git
 
-echo Staging files...
-git add .
+echo Staging all React project files (excluding node_modules)...
+"%GIT_EXE%" add .
 
 echo Committing changes...
-git commit -m "feat: complete Path Pal AI integration with OSRM and Firebase"
+"%GIT_EXE%" commit -m "feat: migrate safe route navigation frontend to React (Vite) and Supabase"
 
 echo Renaming branch to main...
-git branch -M main
+"%GIT_EXE%" branch -M main
 
 echo.
 echo ==============================================================
 echo Pushing to GitHub...
 echo A browser window or popup will open asking you to sign in.
-echo Please authorize GitHub Credential Manager to complete the push.
+echo Please authorize Git Credential Manager to complete the push.
 echo ==============================================================
 echo.
 
-git push -u origin main
+"%GIT_EXE%" push -u origin main
 
 echo.
 echo ==============================================

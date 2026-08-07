@@ -3,7 +3,7 @@
  * Handles Leaflet Map rendering, Tamil Nadu GeoJSON boundary overlays,
  * Crime & Streetlight Heatmaps, dynamic Nominatim search bindings,
  * user geolocation tracking, hazard report modals, and OSRM calculations.
- * Fully optimized for smooth panning and rendering.
+ * Fully optimized for smooth panning, rendering and Supabase integration.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -118,12 +118,36 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }).addTo(geojsonLayerGroup);
 
-    // Fetch approved safety reports from Firestore database
-    db.collection("reports").where("status", "==", "Approved").onSnapshot((snapshot) => {
-      approvedReports = [];
-      snapshot.forEach(doc => {
-        approvedReports.push({ id: doc.id, ...doc.data() });
-      });
+    // Fetch approved safety reports from Supabase Database
+    fetchApprovedReports();
+
+    // Listen to real-time updates on reports
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+      supabaseClient
+        .channel('realtime-approved-reports')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'reports' },
+          () => { fetchApprovedReports(); }
+        )
+        .subscribe();
+    }
+  })
+  .catch(err => {
+    console.error("Critical error loading spatial databases:", err);
+    alert("Error loading Map Datasets: check local server paths.");
+  });
+
+  // Fetch approved reports from Supabase and synchronize maps
+  async function fetchApprovedReports() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('reports')
+        .select('*')
+        .eq('status', 'Approved');
+
+      if (error) throw error;
+      approvedReports = data || [];
 
       // Synchronize Routing Engine with the dynamic datasets
       window.RoutingEngine.setDatasets(rawStreetlights, rawCrimes, approvedReports);
@@ -135,12 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Trigger default routing scenario on load
       triggerDefaultRoute();
-    });
-  })
-  .catch(err => {
-    console.error("Critical error loading spatial databases:", err);
-    alert("Error loading Map Datasets: check local server paths.");
-  });
+    } catch (err) {
+      console.error("Failed to load approved reports from database:", err);
+    }
+  }
 
   // --- Render Streetlight markers (Optimized with Viewport Culling & Caps) ---
   function renderStreetlights() {
@@ -296,9 +318,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="popup-tag crime" style="background:rgba(255,255,255,0.1); color:white;">Approved</span>
           </div>
           <div class="popup-detail-row"><span>Log Time:</span> <b>${rep.time}</b></div>
-          <div class="popup-detail-row"><span>Reporter:</span> <b>${rep.userName}</b></div>
+          <div class="popup-detail-row"><span>Reporter:</span> <b>${rep.user_name}</b></div>
           <div class="popup-detail-row" style="margin-top:8px;"><i>${rep.description}</i></div>
-          ${rep.photoUrl ? `<img src="${rep.photoUrl}" style="width:100%; border-radius:6px; margin-top:8px;"/>` : ""}
+          ${rep.photo_url ? `<img src="${rep.photo_url}" style="width:100%; border-radius:6px; margin-top:8px;"/>` : ""}
         `);
 
         marker.addTo(crimeLayerGroup);

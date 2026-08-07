@@ -213,13 +213,11 @@
     }
   </style>
   
-  <!-- Firebase Compat libraries -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Supabase Web SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Config, Auth, and Guard script references -->
-  <script src="js/firebase.js"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/guard.js"></script>
   <script src="js/auth.js"></script>
 </head>
@@ -270,7 +268,7 @@
       <div id="recaptcha-container"></div>
       
       <div class="info-footer">
-        Secured by Firebase Phone Authentication. By signing in, you agree to enable emergency SOS location tracking.
+        Secured by Supabase Phone Authentication. By signing in, you agree to enable emergency SOS location tracking.
       </div>
     </div>
   </div>
@@ -285,6 +283,8 @@
       const otpSection = document.getElementById("step-otp-section");
       const changePhoneLink = document.getElementById("link-resend");
 
+      let lastEnteredPhone = "";
+
       // Validate phone number format (10-digits)
       phoneInput.addEventListener("input", (e) => {
         const val = e.target.value.replace(/\D/g, "");
@@ -295,13 +295,13 @@
       // Send OTP Click Handler
       sendOtpBtn.addEventListener("click", async () => {
         const num = phoneInput.value;
-        const fullPhone = `+91${num}`;
+        lastEnteredPhone = `+91${num}`;
         
         sendOtpBtn.disabled = true;
         sendOtpBtn.innerHTML = `<span>Sending...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
         
         try {
-          await window.Auth.sendOTP(fullPhone);
+          await window.Auth.sendOTP(lastEnteredPhone);
           phoneSection.classList.remove("active");
           otpSection.classList.add("active");
         } catch (error) {
@@ -324,7 +324,7 @@
         verifyOtpBtn.innerHTML = `<span>Verifying...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
 
         try {
-          const { user, profileComplete } = await window.Auth.verifyOTP(code);
+          const { user, profileComplete } = await window.Auth.verifyOTP(lastEnteredPhone, code);
           
           if (profileComplete) {
             window.location.href = "index.html";

@@ -1,7 +1,7 @@
 /**
  * Path Pal AI - Route Guard
  * Enforces page security, redirects unauthenticated sessions, and protects Admin paths.
- * Executes both immediate localStorage pre-checks (no flickers) and Firebase checks.
+ * Executes both immediate localStorage pre-checks (no flickers) and Supabase checks.
  */
 
 (function () {
@@ -27,15 +27,16 @@
     }
   }
 
-  // 2. Definitive validation handler triggered when Firebase state loads
+  // 2. Definitive validation handler triggered when Supabase auth state changes
   document.addEventListener("DOMContentLoaded", () => {
-    if (typeof firebase === 'undefined') {
-      console.error("Firebase SDK not loaded. Security checks paused.");
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      console.error("Supabase Client SDK not loaded. Security checks paused.");
       return;
     }
 
-    firebase.auth().onAuthStateChanged(async (user) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
       const activePage = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1) || "index.html";
+      const user = session ? session.user : null;
 
       if (!user) {
         // Clear variables and redirect to login if logged out
@@ -46,12 +47,19 @@
         }
       } else {
         localStorage.setItem("pathpal_logged_in", "true");
-        const uid = user.uid;
+        const uid = user.id;
 
         try {
-          const userDoc = await firebase.firestore().collection("users").doc(uid).get();
-          const hasProfile = userDoc.exists && userDoc.data().name;
-          const userRole = userDoc.exists ? (userDoc.data().role || "user") : "user";
+          const { data: profile, error } = await supabaseClient
+            .from('profiles')
+            .select('name, role')
+            .eq('id', uid)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          const hasProfile = profile && profile.name;
+          const userRole = profile ? (profile.role || "user") : "user";
           
           localStorage.setItem("pathpal_user_role", userRole);
 

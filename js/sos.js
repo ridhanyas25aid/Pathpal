@@ -1,6 +1,6 @@
 /**
  * Path Pal AI - Emergency SOS Manager
- * Handles floating SOS button triggers, real-time location streaming to emergency Firestore logs,
+ * Handles floating SOS button triggers, real-time location streaming to emergency Supabase logs,
  * emergency contact calling, and siren alerts.
  */
 
@@ -12,7 +12,7 @@ class SOSManager {
 
   /**
    * Triggers the SOS sequence.
-   * Gets current location, posts alert to Firestore, calls emergency contact, and triggers sirens.
+   * Gets current location, posts alert to Supabase, calls emergency contact, and triggers sirens.
    */
   async triggerSOS() {
     console.log("SOS triggered! Activating emergency services...");
@@ -37,40 +37,49 @@ class SOSManager {
     let emergencyContact = "112"; // Indian national emergency number fallback
     let userPhone = "";
 
-    const user = auth.currentUser;
-    if (user) {
-      userPhone = user.phoneNumber || "";
-      try {
-        const doc = await db.collection("users").doc(user.uid).get();
-        if (doc.exists) {
-          const data = doc.data();
-          name = data.name || name;
-          emergencyContact = data.emergencyContact || emergencyContact;
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        userPhone = user.phone || "";
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('name, emergency_contact')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          name = profile.name || name;
+          emergencyContact = profile.emergency_contact || emergencyContact;
         }
-      } catch (dbErr) {
-        console.error("Could not fetch user details for SOS:", dbErr);
       }
+    } catch (dbErr) {
+      console.error("Could not fetch user details for SOS:", dbErr);
     }
 
-    // 4. Log SOS event in Firestore
+    // 4. Log SOS event in Supabase table public.sos_alerts
     try {
-      await db.collection("sos_alerts").add({
-        userId: user ? user.uid : "unauthenticated",
-        userName: name,
-        userPhone: userPhone,
-        emergencyContact: emergencyContact,
-        latitude: lat,
-        longitude: lng,
-        status: "Active",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log("SOS Alert uploaded to Firestore.");
+      const { error } = await supabaseClient
+        .from('sos_alerts')
+        .insert([
+          {
+            user_id: supabaseClient.auth.user ? supabaseClient.auth.user().id : "unauthenticated",
+            user_name: name,
+            user_phone: userPhone,
+            emergency_contact: emergencyContact,
+            latitude: lat,
+            longitude: lng,
+            status: "Active"
+          }
+        ]);
+
+      if (error) throw error;
+      console.log("SOS Alert uploaded to Supabase database.");
     } catch (fsErr) {
       console.error("Failed to log SOS alert to database:", fsErr);
     }
 
     // 5. Trigger emergency phone call
-    alert(`🚨 SOS ALERT SENT TO FIREBASE! 🚨\n\nNotifying emergency contacts. Attempting to call emergency number: ${emergencyContact}`);
+    alert(`🚨 SOS ALERT SENT TO DATABASE! 🚨\n\nNotifying emergency contacts. Attempting to call emergency number: ${emergencyContact}`);
     window.location.href = `tel:${emergencyContact}`;
   }
 
@@ -185,7 +194,6 @@ class SOSManager {
       // Try to play alert sound programmatically
       try {
         if (!this.audioSiren) {
-          // Synthesizing alert sound via Web Audio API (cross-browser compatible, no files needed!)
           this.audioSiren = true;
           this.startWebAudioSiren();
         }
@@ -207,11 +215,8 @@ class SOSManager {
       this.gainNode = this.audioContext.createGain();
       
       this.oscillator.type = "sine";
-      this.oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime); // A4
-      
-      // Modulate frequency to sound like a real siren
+      this.oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
       this.oscillator.frequency.linearRampToValueAtTime(880, this.audioContext.currentTime + 0.5);
-      
       this.gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
       
       this.oscillator.connect(this.gainNode);
@@ -219,7 +224,6 @@ class SOSManager {
       
       this.oscillator.start();
       
-      // Continuous siren tone frequency sweeping
       this.sirenTimer = setInterval(() => {
         if (!this.audioContext) return;
         const now = this.audioContext.currentTime;

@@ -1,6 +1,6 @@
 /**
- * Path Pal AI - Profile Controller
- * Backs profile.html to save new registrations to Firestore.
+ * Path Pal AI - Profile Setup Controller
+ * Backs profile.html to save new registrations to the Supabase database.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -16,15 +16,20 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUser = null;
 
   // Retrieve auth state to prepopulate phone number
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      phoneInput.value = user.phoneNumber || "";
-    } else {
-      // Not logged in, redirect to login
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    supabaseClient.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        currentUser = user;
+        phoneInput.value = user.phone || "";
+      } else {
+        // Not logged in, redirect to login
+        window.location.href = "login.html";
+      }
+    }).catch(err => {
+      console.error("Failed to load authenticated user:", err);
       window.location.href = "login.html";
-    }
-  });
+    });
+  }
 
   // Ensure emergency contact is numeric 10 digits
   emergencyInput.addEventListener("input", (e) => {
@@ -59,17 +64,21 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.innerHTML = `<span>Saving...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
 
     try {
-      // Save profile to Firestore
-      await db.collection("users").doc(currentUser.uid).set({
-        uid: currentUser.uid,
-        name: name,
-        phone: phone,
-        emergencyContact: emergency,
-        gender: gender,
-        city: city,
-        role: role,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      // Save profile to Supabase public.profiles table
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: currentUser.id,
+          name: name,
+          phone: phone,
+          emergency_contact: emergency,
+          gender: gender,
+          city: city,
+          role: role,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
 
       // Update cached session information
       localStorage.setItem("pathpal_logged_in", "true");
@@ -85,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("Profile registration failed:", error);
-      alert(`Firestore Write Error: ${error.message}`);
+      alert(`Supabase Database Error: ${error.message}`);
       submitBtn.disabled = false;
       submitBtn.innerHTML = `<span>Save & Proceed</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
     }

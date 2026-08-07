@@ -1,7 +1,7 @@
 /**
  * Path Pal AI - Safety Reporting Controller
  * Handles user hazard reporting (Crimes, Outages, Accidents, Harassment) with map pin picking,
- * picture capture/upload, and pending Firestore status writes.
+ * picture capture/upload, and pending Supabase status writes.
  */
 
 class ReportManager {
@@ -34,9 +34,6 @@ class ReportManager {
       this.mapInstance.once("click", (e) => {
         this.reportLatLng = [e.latlng.lat, e.latlng.lng];
         this.mapPickingMode = false;
-        
-        // Show selected feedback in console/UI
-        console.log("Selected hazard coordinates:", this.reportLatLng);
         
         // Show report marker on map temporarily
         if (this.reportMarker) {
@@ -75,7 +72,7 @@ class ReportManager {
   }
 
   /**
-   * Compress and convert file to Base64 string as fallback for Firestore
+   * Compress and convert file to Base64 string as fallback for local storage
    * @param {File} file 
    * @returns {Promise<string>}
    */
@@ -110,7 +107,6 @@ class ReportManager {
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Output compressed jpeg quality 0.7
           const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
           resolve(dataUrl);
         };
@@ -121,7 +117,7 @@ class ReportManager {
   }
 
   /**
-   * Submits the hazard report to Firebase.
+   * Submits the hazard report to Supabase.
    */
   async submitReport() {
     const type = document.getElementById("report-type").value;
@@ -143,20 +139,25 @@ class ReportManager {
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span>Submitting...</span> <i class="fa-solid fa-spinner fa-spin"></i>`;
 
-    const user = auth.currentUser;
     let uid = "anonymous";
     let userName = "Anonymous Reporter";
 
-    if (user) {
-      uid = user.uid;
-      try {
-        const userDoc = await db.collection("users").doc(uid).get();
-        if (userDoc.exists) {
-          userName = userDoc.data().name || userName;
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        uid = user.id;
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('name')
+          .eq('id', uid)
+          .maybeSingle();
+
+        if (profile) {
+          userName = profile.name || userName;
         }
-      } catch (err) {
-        console.warn("Could not load user profile for report:", err);
       }
+    } catch (err) {
+      console.warn("Could not load user profile for report:", err);
     }
 
     let photoUrl = "";
@@ -165,13 +166,23 @@ class ReportManager {
     if (fileInput && fileInput.files.length > 0) {
       const file = fileInput.files[0];
       try {
-        // Attempt upload to Firebase Storage
-        const storageRef = storage.ref(`reports/${Date.now()}_${uid}_${file.name}`);
-        const snapshot = await storageRef.put(file);
-        photoUrl = await snapshot.ref.getDownloadURL();
-        console.log("Image uploaded to Firebase Storage:", photoUrl);
+        // Attempt upload to Supabase Storage bucket called "reports"
+        const filePath = `reports/${Date.now()}_${uid}_${file.name}`;
+        const { data: storageData, error: storageErr } = await supabaseClient.storage
+          .from('reports')
+          .upload(filePath, file);
+
+        if (storageErr) throw storageErr;
+
+        // Get public URL
+        const { data: publicUrlData } = supabaseClient.storage
+          .from('reports')
+          .getPublicUrl(filePath);
+
+        photoUrl = publicUrlData.publicUrl;
+        console.log("Image uploaded to Supabase Storage:", photoUrl);
       } catch (storageErr) {
-        console.warn("Firebase Storage unavailable or permission denied. Falling back to compressed Base64 inline storage in Firestore...", storageErr);
+        console.warn("Supabase Storage unavailable or permission denied. Falling back to compressed Base64 inline storage in Database...", storageErr);
         try {
           photoUrl = await this.compressAndConvertImage(file);
         } catch (compressErr) {
@@ -180,20 +191,25 @@ class ReportManager {
       }
     }
 
-    // Save report document in Firestore under 'reports'
+    // Save report row in Supabase 'reports' table
     try {
-      await db.collection("reports").add({
-        type: type,
-        description: desc,
-        time: time,
-        latitude: this.reportLatLng[0],
-        longitude: this.reportLatLng[1],
-        photoUrl: photoUrl,
-        status: "Pending", // Reports remain pending until approved by admin
-        userId: uid,
-        userName: userName,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      const { data, error } = await supabaseClient
+        .from('reports')
+        .insert([
+          {
+            type: type,
+            description: desc,
+            time: time,
+            latitude: this.reportLatLng[0],
+            longitude: this.reportLatLng[1],
+            photo_url: photoUrl,
+            status: "Pending", // Reports remain pending until approved by admin
+            user_id: uid,
+            user_name: userName
+          }
+        ]);
+
+      if (error) throw error;
 
       alert("Thank you! Your report has been submitted for review. It will be added to the navigation risk assessments once approved by an administrator.");
       
@@ -210,7 +226,7 @@ class ReportManager {
       this.toggleModal(false);
 
     } catch (fsErr) {
-      console.error("Failed to write report to Firestore:", fsErr);
+      console.error("Failed to write report to Supabase database:", fsErr);
       alert(`Database Error: ${fsErr.message}`);
     } finally {
       submitBtn.disabled = false;
