@@ -511,6 +511,38 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
   // Map clicks handler for coordinates picking
   const handleMapClick = (lat, lng) => {
+  if (reportPicking) {
+    setReportCoords([lat, lng]);
+    setReportPicking(false);
+    setShowReportModal(true);
+
+    // Show temporary reporting marker
+    if (reportMarkerRef.current) mapInstance.current.removeLayer(reportMarkerRef.current);
+    reportMarkerRef.current = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: '<div class="custom-report-pin">⚠️</div>',
+        className: 'custom-leaflet-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      })
+    }).addTo(mapInstance.current);
+    return;
+  }
+
+  if (pickingMode === "start") {
+    setStartCoords([lat, lng]);
+    setStartQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    setStartSuggestions([]);
+    setEndSuggestions([]);
+    setPickingMode(null);
+  } else if (pickingMode === "end") {
+    setEndCoords([lat, lng]);
+    setEndQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    setStartSuggestions([]);
+    setEndSuggestions([]);
+    setPickingMode(null);
+  }
+};
     if (reportPicking) {
       setReportCoords([lat, lng]);
       setReportPicking(false);
@@ -1104,7 +1136,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
       <button onClick={triggerSOSAlert} className="sos-floating-button">SOS</button>
 
       {/* Map Container */}
-      <main id="map" ref={mapRef} style={{ background: '#020617', flex: 1, height: '100%' }}></main>
+      <main id="map" ref={mapRef} style={{ background: '#020617', flex: 1, height: '100%', cursor: pickingMode ? 'crosshair' : 'default' }}></main>
 
       {/* Floating AI Chatbot Button */}
       <button
