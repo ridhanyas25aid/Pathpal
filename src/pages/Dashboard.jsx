@@ -565,34 +565,6 @@ useEffect(() => {
     setPickingMode(null);
   }
 };
-    if (reportPicking) {
-      setReportCoords([lat, lng]);
-      setReportPicking(false);
-      setShowReportModal(true);
-
-      // Show temporary reporting marker
-      if (reportMarkerRef.current) mapInstance.current.removeLayer(reportMarkerRef.current);
-      reportMarkerRef.current = L.marker([lat, lng], {
-        icon: L.divIcon({
-          html: '<div class="custom-report-pin">⚠️</div>',
-          className: 'custom-leaflet-icon',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
-        })
-      }).addTo(mapInstance.current);
-      return;
-    }
-
-    if (pickingMode === "start") {
-      setStartCoords([lat, lng]);
-      setStartQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      setPickingMode(null);
-    } else if (pickingMode === "end") {
-      setEndCoords([lat, lng]);
-      setEndQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      setPickingMode(null);
-    }
-  };
 
   // --- User Safety Hazard Submission ---
   const handleReportSubmit = async (e) => {
