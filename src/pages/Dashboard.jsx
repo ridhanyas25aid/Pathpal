@@ -235,9 +235,6 @@ useEffect(() => {
     console.log('Map click (useEffect) detected:', lat, lng);
     handleMapClick(lat, lng);
   };
-    const { lat, lng } = e.latlng ? e.latlng : e;
-    handleMapClick(lat, lng);
-  };
   mapInstance.current.on('click', clickHandler);
   return () => {
     mapInstance.current.off('click', clickHandler);
