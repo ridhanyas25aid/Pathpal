@@ -184,6 +184,16 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
         }).addTo(geojsonGroup.current);
 
         mapInstance.current = initMap;
+      // Register click handler for picking points and reports
+      const mapClickHandler = (e) => {
+        const { lat, lng } = e.latlng ? e.latlng : e;
+        console.log('Map click detected:', lat, lng);
+        handleMapClick(lat, lng);
+      };
+        const { lat, lng } = e.latlng ? e.latlng : e;
+        handleMapClick(lat, lng);
+      };
+      mapInstance.current.on('click', mapClickHandler);
 
         // Sync panning and culling
         initMap.on("moveend", () => {
@@ -206,6 +216,10 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
       return () => {
         supabase.removeChannel(reportsSubscription);
+        // Cleanup map click listener on unmount
+        if (mapInstance.current) {
+          mapInstance.current.off('click', mapClickHandler);
+        }
       };
     })
     .catch(err => {
@@ -218,6 +232,10 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 useEffect(() => {
   if (!mapInstance.current) return;
   const clickHandler = (e) => {
+    const { lat, lng } = e.latlng ? e.latlng : e;
+    console.log('Map click (useEffect) detected:', lat, lng);
+    handleMapClick(lat, lng);
+  };
     const { lat, lng } = e.latlng ? e.latlng : e;
     handleMapClick(lat, lng);
   };
