@@ -863,16 +863,22 @@ useEffect(() => {
           {/* Counters */}
           <div className="stats-summary-grid">
             <div className="stat-card">
-              <div className="stat-number">{streetlights.length || "--"}</div>
-              <div className="stat-label">Streetlights</div>
+              <div className="stat-number">
+                {routes ? (routes.safest.metrics.working_lights + routes.safest.metrics.faulty_lights) : (streetlights.length || "--")}
+              </div>
+              <div className="stat-label">{routes ? "Route Lights" : "Streetlights"}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{(crimes.length + reports.length) || "--"}</div>
-              <div className="stat-label">Crime Incidents</div>
+              <div className="stat-number">
+                {routes ? routes.safest.metrics.crime_warnings.length : ((crimes.length + reports.length) || "--")}
+              </div>
+              <div className="stat-label">{routes ? "Route Crimes" : "Crime Incidents"}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{(streetlights.filter(s => s[2] < 0.75).length + reports.filter(r => r.type === "Broken Streetlight").length) || "--"}</div>
-              <div className="stat-label">Light Outages</div>
+              <div className="stat-number">
+                {routes ? routes.safest.metrics.faulty_lights : ((streetlights.filter(s => s[2] < 0.75).length + reports.filter(r => r.type === "Broken Streetlight").length) || "--")}
+              </div>
+              <div className="stat-label">{routes ? "Route Outages" : "Light Outages"}</div>
             </div>
           </div>
 
