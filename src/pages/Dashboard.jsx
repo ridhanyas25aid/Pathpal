@@ -185,16 +185,14 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
         }).addTo(geojsonGroup.current);
 
         mapInstance.current = initMap;
-      // Register click handler for picking points and reports
-      const mapClickHandler = (e) => {
-        const { lat, lng } = e.latlng ? e.latlng : e;
-        console.log('Map click detected:', lat, lng);
-        handleMapClick(lat, lng);
-      };
-        const { lat, lng } = e.latlng ? e.latlng : e;
-        handleMapClick(lat, lng);
-      };
-      mapInstance.current.on('click', mapClickHandler);
+
+        // Register click handler for picking points and reports
+        const mapClickHandler = (e) => {
+          const { lat, lng } = e.latlng ? e.latlng : e;
+          console.log('Map click detected:', lat, lng);
+          handleMapClick(lat, lng);
+        };
+        initMap.on('click', mapClickHandler);
 
         // Sync panning and culling
         initMap.on("moveend", () => {
