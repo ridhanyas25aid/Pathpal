@@ -189,11 +189,6 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
         initMap.on("moveend", () => {
           triggerPinRenders(streetlightData, crimeData);
         });
-
-        // Custom picking handler
-        initMap.on("click", (e) => {
-          handleMapClick(e.latlng.lat, e.latlng.lng);
-        });
       }
 
       // Fetch dynamic reports from Supabase
@@ -219,7 +214,20 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
     });
   }, []);
 
-  // Fetch reports helper
+// Attach map click listener for picking points and reports
+useEffect(() => {
+  if (!mapInstance.current) return;
+  const clickHandler = (e) => {
+    const { lat, lng } = e.latlng ? e.latlng : e;
+    handleMapClick(lat, lng);
+  };
+  mapInstance.current.on('click', clickHandler);
+  return () => {
+    mapInstance.current.off('click', clickHandler);
+  };
+}, [pickingMode, reportPicking]);
+
+// Fetch reports helper
   const fetchApprovedReports = async (slList, crList) => {
     try {
       const { data, error } = await supabase
