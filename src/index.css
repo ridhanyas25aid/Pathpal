@@ -563,13 +563,35 @@ input:checked + .slider:before {
 
 /* Place search suggestions dropdown */
 .autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   background: rgba(15, 23, 42, 0.98) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 8px;
+  border-radius: 12px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10000;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
 }
 
-.autocomplete-item:hover {
+.suggestion-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
   background: rgba(6, 182, 212, 0.15) !important;
   color: white !important;
 }

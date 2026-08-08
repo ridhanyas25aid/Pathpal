@@ -174,6 +174,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
         // Load Tamil Nadu Boundaries
         L.geoJSON(geoJson, {
+          interactive: false,
           style: {
             color: "#3b82f6",
             weight: 2,
@@ -896,6 +897,9 @@ useEffect(() => {
                       setStartCoords([item.lat, item.lng]);
                       setStartQuery(item.name);
                       setStartSuggestions([]);
+                      if (mapInstance.current) {
+                        mapInstance.current.setView([item.lat, item.lng], 14);
+                      }
                     }}>
                       {item.name}
                     </div>
@@ -921,6 +925,9 @@ useEffect(() => {
                       setEndCoords([item.lat, item.lng]);
                       setEndQuery(item.name);
                       setEndSuggestions([]);
+                      if (mapInstance.current) {
+                        mapInstance.current.setView([item.lat, item.lng], 14);
+                      }
                     }}>
                       {item.name}
                     </div>
