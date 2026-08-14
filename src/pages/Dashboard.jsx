@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { computeCustomRoutes } from '../services/routing';
 
@@ -88,6 +88,7 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
   const [reportPicking, setReportPicking] = useState(false);
   const reportMarkerRef = useRef(null);
   const [submittingReport, setSubmittingReport] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   // Voice Announcements State
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -186,14 +187,6 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
         mapInstance.current = initMap;
 
-        // Register click handler for picking points and reports
-        const mapClickHandler = (e) => {
-          const { lat, lng } = e.latlng ? e.latlng : e;
-          console.log('Map click detected:', lat, lng);
-          handleMapClick(lat, lng);
-        };
-        initMap.on('click', mapClickHandler);
-
         // Sync panning and culling
         initMap.on("moveend", () => {
           triggerPinRenders(streetlightData, crimeData);
@@ -215,10 +208,6 @@ export default function Dashboard({ user, role, onNavigate, onLogout }) {
 
       return () => {
         supabase.removeChannel(reportsSubscription);
-        // Cleanup map click listener on unmount
-        if (mapInstance.current) {
-          mapInstance.current.off('click', mapClickHandler);
-        }
       };
     })
     .catch(err => {
@@ -239,7 +228,7 @@ useEffect(() => {
   return () => {
     mapInstance.current.off('click', clickHandler);
   };
-}, [pickingMode, reportPicking]);
+}, [pickingMode, reportPicking, handleMapClick]);
 
 // Fetch reports helper
   const fetchApprovedReports = async (slList, crList) => {
@@ -494,30 +483,39 @@ useEffect(() => {
   };
 
   // --- Nominatim Places autocomplete debounced search ---
-  const handleSearch = async (query, isStart) => {
+  const handleSearch = (query, isStart) => {
     if (isStart) {
       setStartQuery(query);
-      if (query.trim().length < 3) return setStartSuggestions([]);
+      if (query.trim().length < 3) {
+        setStartSuggestions([]);
+        return;
+      }
     } else {
       setEndQuery(query);
-      if (query.trim().length < 3) return setEndSuggestions([]);
+      if (query.trim().length < 3) {
+        setEndSuggestions([]);
+        return;
+      }
     }
 
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=Tamil+Nadu+${encodeURIComponent(query)}&limit=5`);
-      if (response.ok) {
-        const data = await response.json();
-        const results = data.map(item => ({
-          name: item.display_name.replace(", Tamil Nadu, India", ""),
-          lat: parseFloat(item.lat),
-          lng: parseFloat(item.lon)
-        }));
-        if (isStart) setStartSuggestions(results);
-        else setEndSuggestions(results);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+        if (response.ok) {
+          const data = await response.json();
+          const results = data.map(item => ({
+            name: item.display_name.replace(", Tamil Nadu, India", "").replace(", India", ""),
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon)
+          }));
+          if (isStart) setStartSuggestions(results);
+          else setEndSuggestions(results);
+        }
+      } catch (e) {
+        console.warn("Autocomplete query failed", e);
       }
-    } catch (e) {
-      console.warn("Autocomplete query failed", e);
-    }
+    }, 450);
   };
 
   // Preset corridor selector
@@ -532,39 +530,39 @@ useEffect(() => {
   };
 
   // Map clicks handler for coordinates picking
-  const handleMapClick = (lat, lng) => {
-  if (reportPicking) {
-    setReportCoords([lat, lng]);
-    setReportPicking(false);
-    setShowReportModal(true);
+  const handleMapClick = useCallback((lat, lng) => {
+    if (reportPicking) {
+      setReportCoords([lat, lng]);
+      setReportPicking(false);
+      setShowReportModal(true);
 
-    // Show temporary reporting marker
-    if (reportMarkerRef.current) mapInstance.current.removeLayer(reportMarkerRef.current);
-    reportMarkerRef.current = L.marker([lat, lng], {
-      icon: L.divIcon({
-        html: '<div class="custom-report-pin">⚠️</div>',
-        className: 'custom-leaflet-icon',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      })
-    }).addTo(mapInstance.current);
-    return;
-  }
+      // Show temporary reporting marker
+      if (reportMarkerRef.current) mapInstance.current.removeLayer(reportMarkerRef.current);
+      reportMarkerRef.current = L.marker([lat, lng], {
+        icon: L.divIcon({
+          html: '<div class="custom-report-pin">⚠️</div>',
+          className: 'custom-leaflet-icon',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        })
+      }).addTo(mapInstance.current);
+      return;
+    }
 
-  if (pickingMode === "start") {
-    setStartCoords([lat, lng]);
-    setStartQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    setStartSuggestions([]);
-    setEndSuggestions([]);
-    setPickingMode(null);
-  } else if (pickingMode === "end") {
-    setEndCoords([lat, lng]);
-    setEndQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    setStartSuggestions([]);
-    setEndSuggestions([]);
-    setPickingMode(null);
-  }
-};
+    if (pickingMode === "start") {
+      setStartCoords([lat, lng]);
+      setStartQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setStartSuggestions([]);
+      setEndSuggestions([]);
+      setPickingMode(null);
+    } else if (pickingMode === "end") {
+      setEndCoords([lat, lng]);
+      setEndQuery(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setStartSuggestions([]);
+      setEndSuggestions([]);
+      setPickingMode(null);
+    }
+  }, [pickingMode, reportPicking]);
 
   // --- User Safety Hazard Submission ---
   const handleReportSubmit = async (e) => {
