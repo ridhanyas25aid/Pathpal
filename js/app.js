@@ -3,7 +3,7 @@
  * Handles Leaflet Map rendering, Tamil Nadu GeoJSON boundary overlays,
  * Crime & Streetlight Heatmaps, dynamic Nominatim search bindings,
  * user geolocation tracking, hazard report modals, and OSRM calculations.
- * Fully optimized for smooth panning, rendering and Supabase integration.
+ * Fully optimized for smooth panning and rendering.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -72,6 +72,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let customEndPt = null;
   let mapPickingMode = null; // 'start' or 'end'
   
+  // Active Route State
+  let activeRoute = null;
+  let selectedRouteType = 'safest'; // 'safest' or 'fastest'
+  let fastestPolyline = null;
+  let safestPolyline = null;
+  
   // Datasets Storage
   let rawStreetlights = [];
   let rawCrimes = [];
@@ -118,36 +124,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }).addTo(geojsonLayerGroup);
 
-    // Fetch approved safety reports from Supabase Database
-    fetchApprovedReports();
-
-    // Listen to real-time updates on reports
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-      supabaseClient
-        .channel('realtime-approved-reports')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'reports' },
-          () => { fetchApprovedReports(); }
-        )
-        .subscribe();
-    }
-  })
-  .catch(err => {
-    console.error("Critical error loading spatial databases:", err);
-    alert("Error loading Map Datasets: check local server paths.");
-  });
-
-  // Fetch approved reports from Supabase and synchronize maps
-  async function fetchApprovedReports() {
-    try {
-      const { data, error } = await supabaseClient
-        .from('reports')
-        .select('*')
-        .eq('status', 'Approved');
-
-      if (error) throw error;
-      approvedReports = data || [];
+    // Fetch approved safety reports from Firestore database
+    db.collection("reports").where("status", "==", "Approved").onSnapshot((snapshot) => {
+      approvedReports = [];
+      snapshot.forEach(doc => {
+        approvedReports.push({ id: doc.id, ...doc.data() });
+      });
 
       // Synchronize Routing Engine with the dynamic datasets
       window.RoutingEngine.setDatasets(rawStreetlights, rawCrimes, approvedReports);
@@ -159,10 +141,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Trigger default routing scenario on load
       triggerDefaultRoute();
-    } catch (err) {
-      console.error("Failed to load approved reports from database:", err);
-    }
-  }
+    }, (error) => {
+      console.warn("Firestore reports fetch failed (likely offline/bypass):", error);
+      approvedReports = [];
+      window.RoutingEngine.setDatasets(rawStreetlights, rawCrimes, approvedReports);
+      renderStreetlights();
+      renderCrimeIncidents();
+      initializeHeatmaps();
+      triggerDefaultRoute();
+    });
+  })
+  .catch(err => {
+    console.error("Critical error loading spatial databases:", err);
+    alert("Error loading Map Datasets: check local server paths.");
+  });
 
   // --- Render Streetlight markers (Optimized with Viewport Culling & Caps) ---
   function renderStreetlights() {
@@ -318,9 +310,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="popup-tag crime" style="background:rgba(255,255,255,0.1); color:white;">Approved</span>
           </div>
           <div class="popup-detail-row"><span>Log Time:</span> <b>${rep.time}</b></div>
-          <div class="popup-detail-row"><span>Reporter:</span> <b>${rep.user_name}</b></div>
+          <div class="popup-detail-row"><span>Reporter:</span> <b>${rep.userName}</b></div>
           <div class="popup-detail-row" style="margin-top:8px;"><i>${rep.description}</i></div>
-          ${rep.photo_url ? `<img src="${rep.photo_url}" style="width:100%; border-radius:6px; margin-top:8px;"/>` : ""}
+          ${rep.photoUrl ? `<img src="${rep.photoUrl}" style="width:100%; border-radius:6px; margin-top:8px;"/>` : ""}
         `);
 
         marker.addTo(crimeLayerGroup);
@@ -364,11 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Optimize marker updates during pan & zoom changes
-  map.on("moveend", () => {
-    renderStreetlights();
-    renderCrimeIncidents();
-  });
+  // Optimize marker updates during pan & zoom changes (Consolidated in the main moveend handler at the bottom)
 
   // --- Display route scenarios ---
   function displayRouteScenario(routeObj) {
@@ -378,7 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const safest = routeObj.safest;
 
     // Draw Fastest Route (Amber / Orange Polyline)
-    const fastestPolyline = L.polyline(fastest.path, {
+    fastestPolyline = L.polyline(fastest.path, {
       color: "#f59e0b",
       weight: 5,
       opacity: 0.8,
@@ -386,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }).addTo(routesLayerGroup);
 
     // Draw Safest Route (Neon Green Polyline with glow)
-    const safestPolyline = L.polyline(safest.path, {
+    safestPolyline = L.polyline(safest.path, {
       color: "#10b981",
       weight: 7,
       opacity: 0.9
@@ -418,6 +406,70 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Update UI Route Comparison Cards
     updateRouteUI(routeObj);
+    
+    // Select Safest route by default on computation
+    selectRoute('safest');
+  }
+
+  // Helper to switch highlighted route and update metrics
+  function selectRoute(type) {
+    if (!activeRoute) return;
+    selectedRouteType = type;
+    const safestCard = document.getElementById("safest-route-card");
+    const fastestCard = document.getElementById("fastest-route-card");
+
+    if (!safestCard || !fastestCard) return;
+
+    if (type === 'safest') {
+      safestCard.classList.add("selected");
+      fastestCard.classList.remove("selected");
+      
+      if (safestPolyline && fastestPolyline) {
+        safestPolyline.setStyle({ color: "#10b981", weight: 7, opacity: 0.9 });
+        fastestPolyline.setStyle({ color: "#f59e0b", weight: 5, opacity: 0.4, dashArray: "10, 8" });
+        safestPolyline.bringToFront();
+      }
+      
+      updateSummaryCards(activeRoute.safest.metrics);
+    } else {
+      fastestCard.classList.add("selected");
+      safestCard.classList.remove("selected");
+
+      if (safestPolyline && fastestPolyline) {
+        fastestPolyline.setStyle({ color: "#f59e0b", weight: 7, opacity: 0.9, dashArray: "" });
+        safestPolyline.setStyle({ color: "#10b981", weight: 5, opacity: 0.4 });
+        fastestPolyline.bringToFront();
+      }
+
+      updateSummaryCards(activeRoute.fastest.metrics);
+    }
+  }
+
+  // Update summary stat cards from route metrics or current viewport
+  function updateSummaryCards(metrics) {
+    const totalLights = (metrics?.working_lights || 0) + (metrics?.faulty_lights || 0);
+    const crimeCount = (metrics?.crime_warnings?.length) || 0;
+    const outageCount = metrics?.faulty_lights || 0;
+
+    document.getElementById("stat-total-lights").textContent = totalLights || "0";
+    document.getElementById("stat-active-crimes").textContent = crimeCount || "0";
+    document.getElementById("stat-active-outages").textContent = outageCount || "0";
+  }
+
+  function refreshSummaryCountByViewport() {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const minLat = sw.lat, maxLat = ne.lat, minLng = sw.lng, maxLng = ne.lng;
+
+    const visibleStreetlights = rawStreetlights.filter(sl => sl[0] >= minLat && sl[0] <= maxLat && sl[1] >= minLng && sl[1] <= maxLng);
+    const visibleCrimes = rawCrimes.filter(crm => crm.Latitude >= minLat && crm.Latitude <= maxLat && crm.Longitude >= minLng && crm.Longitude <= maxLng);
+    const visibleReports = approvedReports.filter(rep => rep.latitude >= minLat && rep.latitude <= maxLat && rep.longitude >= minLng && rep.longitude <= maxLng);
+    const outageCount = visibleStreetlights.filter(sl => sl[2] < 0.75).length + visibleReports.filter(r => r.type === "Broken Streetlight").length;
+
+    document.getElementById("stat-total-lights").textContent = visibleStreetlights.length || "0";
+    document.getElementById("stat-active-crimes").textContent = (visibleCrimes.length + visibleReports.filter(r => r.type !== "Broken Streetlight").length) || "0";
+    document.getElementById("stat-active-outages").textContent = outageCount || "0";
   }
 
   // Update UI Elements with metrics
@@ -536,10 +588,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const customRoute = await window.RoutingEngine.computeCustomRoutes(customStartPt, customEndPt);
+      activeRoute = customRoute;
       displayRouteScenario(customRoute);
     } catch (err) {
-      console.error("Routing error:", err);
-      alert("Failed to compute route from OpenStreetMap OSRM. Check internet connection.");
+      console.warn("OSRM route failed, using offline fallback:", err);
+      if (window.RoutingEngine.computeCustomRoutesFallback) {
+        const fallbackRoute = window.RoutingEngine.computeCustomRoutesFallback(customStartPt, customEndPt);
+        activeRoute = fallbackRoute;
+        displayRouteScenario(fallbackRoute);
+      } else {
+        alert("Failed to compute route. The offline route fallback is unavailable.");
+      }
     }
   }
 
@@ -772,10 +831,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Set counters of static data on load (will be overridden on dynamic files count)
-  setTimeout(() => {
-    document.getElementById("stat-total-lights").textContent = rawStreetlights.length || "0";
-    document.getElementById("stat-active-crimes").textContent = (rawCrimes.length + approvedReports.length) || "0";
-    document.getElementById("stat-active-outages").textContent = (rawStreetlights.filter(s => s[2] < 0.75).length + approvedReports.filter(r => r.type === "Broken Streetlight").length) || "0";
-  }, 1500);
+  // Refresh stat cards each time the map view changes for location-aware counts
+  map.on("moveend", () => {
+    renderStreetlights();
+    renderCrimeIncidents();
+    
+    // If a route is active and visible in the viewport, preserve and update the route's specific metrics.
+    // Otherwise, fallback to location-aware counts of the current viewport.
+    if (activeRoute && customStartPt && customEndPt && (map.getBounds().contains(customStartPt) || map.getBounds().contains(customEndPt))) {
+      const selectedMetrics = selectedRouteType === 'fastest' ? activeRoute.fastest.metrics : activeRoute.safest.metrics;
+      updateSummaryCards(selectedMetrics);
+    } else {
+      refreshSummaryCountByViewport();
+    }
+  });
+
+  // Bind click selection on the safest and fastest route cards
+  const safestCard = document.getElementById("safest-route-card");
+  const fastestCard = document.getElementById("fastest-route-card");
+  if (safestCard && fastestCard) {
+    safestCard.addEventListener("click", () => selectRoute('safest'));
+    fastestCard.addEventListener("click", () => selectRoute('fastest'));
+  }
+
+  // Initialize summary counts from the current viewport once data has loaded
+  refreshSummaryCountByViewport();
 });
