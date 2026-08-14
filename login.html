@@ -219,9 +219,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   
   <!-- Config, Auth, and Guard script references -->
-  <script src="js/firebase.js"></script>
-  <script src="js/guard.js"></script>
-  <script src="js/auth.js"></script>
+  <script src="js/firebase.js?v=2"></script>
+  <script src="js/guard.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
 </head>
 <body>
 
@@ -248,6 +248,18 @@
         <button id="btn-send-otp" class="btn-login" disabled>
           <span>Send OTP</span> <i class="fa-solid fa-arrow-right"></i>
         </button>
+
+        <div style="font-size: 11px; color: #64748b; text-align: center; margin: 20px 0 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.8;">
+          — OR BYPASS FOR TESTING —
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 10px;">
+          <button id="btn-bypass-user" type="button" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.3); color: #06b6d4; padding: 14px; cursor: pointer; flex: 1; border-radius: 12px; font-weight: 700; transition: all 0.2s; font-size: 13px;">
+            🚀 Login as User
+          </button>
+          <button id="btn-bypass-admin" type="button" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 14px; cursor: pointer; flex: 1; border-radius: 12px; font-weight: 700; transition: all 0.2s; font-size: 13px;">
+            👑 Login as Admin
+          </button>
+        </div>
       </div>
 
       <!-- STEP 2: Enter Verification Code -->
@@ -349,6 +361,28 @@
         phoneInput.value = "";
         otpInput.value = "";
       });
+
+      // Dev Bypass Controls
+      const bypassUserBtn = document.getElementById("btn-bypass-user");
+      const bypassAdminBtn = document.getElementById("btn-bypass-admin");
+
+      if (bypassUserBtn) {
+        bypassUserBtn.addEventListener("click", () => {
+          localStorage.setItem("pathpal_logged_in", "true");
+          localStorage.setItem("pathpal_user_role", "user");
+          localStorage.setItem("pathpal_bypass", "true");
+          window.location.href = "index.html";
+        });
+      }
+
+      if (bypassAdminBtn) {
+        bypassAdminBtn.addEventListener("click", () => {
+          localStorage.setItem("pathpal_logged_in", "true");
+          localStorage.setItem("pathpal_user_role", "admin");
+          localStorage.setItem("pathpal_bypass", "true");
+          window.location.href = "admin.html";
+        });
+      }
     });
   </script>
 </body>

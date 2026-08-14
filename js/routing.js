@@ -78,6 +78,7 @@ window.RoutingEngine = (function () {
     let workingLightsCount = 0;
     let faultyLightsCount = 0;
     let nearbyCrimes = [];
+    let outagePoints = [];
 
     // Filter datasets to bounding box before looping (performance optimization)
     const localStreetlights = filterSpatialData(path, streetlightData, false);
@@ -100,7 +101,7 @@ window.RoutingEngine = (function () {
     }
 
     // 1. Evaluate local streetlights within 300m of route samples
-    localStreetlights.forEach(sl => {
+    localStreetlights.forEach((sl, idx) => {
       const slLat = sl[0];
       const slLng = sl[1];
       const intensity = sl[2];
@@ -114,7 +115,16 @@ window.RoutingEngine = (function () {
       }
       if (isNearRoute) {
         if (intensity >= 0.75) workingLightsCount++;
-        else faultyLightsCount++;
+        else {
+          faultyLightsCount++;
+          outagePoints.push({
+            id: sl.id || `sl-${idx}`,
+            lat: slLat,
+            lng: slLng,
+            intensity,
+            type: "faulty-streetlight"
+          });
+        }
       }
     });
 
@@ -130,6 +140,13 @@ window.RoutingEngine = (function () {
         }
         if (isNearRoute) {
           faultyLightsCount++;
+          outagePoints.push({
+            id: rep.id || `report-${Math.random().toString(36).slice(2, 8)}`,
+            lat: rep.latitude,
+            lng: rep.longitude,
+            description: rep.description || rep.type,
+            type: "broken-streetlight-report"
+          });
         }
       }
     });
@@ -213,6 +230,7 @@ window.RoutingEngine = (function () {
       working_lights: workingLightsCount,
       faulty_lights: faultyLightsCount,
       crime_warnings: nearbyCrimes,
+      outage_points: outagePoints,
       streetlight_availability: streetlightAvailability,
       crime_risk_score: crimeRiskScore,
       estimated_risk: estimatedRisk
@@ -223,13 +241,25 @@ window.RoutingEngine = (function () {
   async function fetchOSRMRoute(waypoints) {
     const coordsStr = waypoints.map(pt => `${pt[1]},${pt[0]}`).join(';');
     const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson&alternatives=true`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("OSRM API error");
-    const data = await response.json();
-    if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
-      throw new Error("No route found");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("OSRM API error");
+      const data = await response.json();
+      if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
+        throw new Error("No route found");
+      }
+      return data.routes;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('OSRM request timed out');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return data.routes;
   }
 
   // Generate dynamic Fastest & Safest routes between custom coordinates [lat, lng]
@@ -403,6 +433,7 @@ window.RoutingEngine = (function () {
     calculateTotalDistance,
     analyzeRouteSafety,
     computeCustomRoutes,
+    computeCustomRoutesFallback,
     setDatasets
   };
 })();

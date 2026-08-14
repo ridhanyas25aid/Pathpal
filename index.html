@@ -288,6 +288,27 @@
     </div>
   </div>
 
+  <!-- AI Chatbot Widget -->
+  <div class="chatbot-widget" id="chatbot-widget">
+    <button id="chatbot-toggle" class="chatbot-toggle">
+      <i class="fa-solid fa-robot"></i> AI Assistant
+    </button>
+
+    <div class="chatbot-panel" id="chatbot-panel" style="display:none;">
+      <div class="chatbot-header">
+        <div>Path Pal AI Chatbot</div>
+        <button id="chatbot-close" class="chatbot-close" aria-label="Close chatbot">×</button>
+      </div>
+      <div class="chatbot-messages" id="chatbot-messages">
+        <div class="chatbot-message bot">Hi there! I can help you find safe routes, explain map layers, or answer questions about streetlights and crime data.</div>
+      </div>
+      <div class="chatbot-input-group">
+        <input id="chatbot-input" type="text" placeholder="Ask me about safe routes, lighting, or street incidents..." autocomplete="off">
+        <button id="chatbot-send">Send</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet Map JS Library -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
@@ -309,5 +330,6 @@
   <script src="js/report.js"></script>
   <script src="js/routing.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/chatbot.js"></script>
 </body>
 </html>

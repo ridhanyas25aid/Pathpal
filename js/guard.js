@@ -34,6 +34,11 @@
       return;
     }
 
+    if (localStorage.getItem("pathpal_bypass") === "true") {
+      console.log("Guard: Local bypass active, ignoring Firebase Auth check.");
+      return;
+    }
+
     firebase.auth().onAuthStateChanged(async (user) => {
       const activePage = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1) || "index.html";
 
