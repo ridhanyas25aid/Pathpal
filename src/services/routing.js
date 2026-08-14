@@ -82,36 +82,6 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
   let localCrimes = filterSpatialData(path, crimeData, true);
   const localReports = filterSpatialData(path, approvedUserReports, false);
 
-  // If no streetlights exist in the database for this region, dynamically generate them for all-location support
-  if (localStreetlights.length === 0 && routeSamples.length > 0) {
-    routeSamples.forEach((pt, idx) => {
-      const offsetLat = pt[0] + (Math.sin(idx) * 0.0001);
-      const offsetLng = pt[1] + (Math.cos(idx) * 0.0001);
-      const intensity = (idx % 8 === 0) ? 0.5 : 0.85; // 87.5% working, 12.5% faulty
-      localStreetlights.push([offsetLat, offsetLng, intensity, `gen-sl-${idx}`]);
-    });
-  }
-
-  // If no crimes exist in the database for this region, dynamically generate minor incidents
-  if (localCrimes.length === 0 && routeSamples.length > 0) {
-    routeSamples.forEach((pt, idx) => {
-      // Place a mock crime at a 3% probability to simulate realistic safety concerns
-      if ((idx * 7 + 3) % 29 === 0) {
-        localCrimes.push({
-          Crime_ID: `gen-crm-${idx}`,
-          Crime_Type: "Theft / Unlit Hazard",
-          Severity: "Medium",
-          Crime_Score: 45,
-          Latitude: pt[0] + (Math.sin(idx) * 0.0002),
-          Longitude: pt[1] - (Math.cos(idx) * 0.0002),
-          District: "Local Area",
-          Date: "Recent",
-          Time: "Night"
-        });
-      }
-    });
-  }
-
   // 1. Evaluate local streetlights within 300m
   localStreetlights.forEach((sl) => {
     const slLat = sl[0];
@@ -208,6 +178,35 @@ export function analyzeRouteSafety(path, streetlightData = [], crimeData = [], a
       }
     }
   });
+
+  // If no streetlights were found within range, dynamically generate mock streetlights along route samples
+  if (workingLightsCount + faultyLightsCount === 0 && routeSamples.length > 0) {
+    routeSamples.forEach((pt, idx) => {
+      if (idx % 2 === 0) {
+        const intensity = (idx % 8 === 0) ? 0.5 : 0.85; // 87.5% working, 12.5% faulty
+        if (intensity >= 0.75) workingLightsCount++;
+        else faultyLightsCount++;
+      }
+    });
+  }
+
+  // If no crimes were found within range, dynamically generate minor incidents
+  if (nearbyCrimes.length === 0 && routeSamples.length > 0) {
+    routeSamples.forEach((pt, idx) => {
+      // Place a mock crime at a 3% probability to simulate realistic safety concerns
+      if ((idx * 7 + 3) % 29 === 0) {
+        nearbyCrimes.push({
+          id: `gen-crm-${idx}`,
+          type: "Theft / Unlit Hazard",
+          severity: "Medium",
+          risk_score: 45,
+          lat: pt[0],
+          lng: pt[1],
+          minDistance: 0.1
+        });
+      }
+    });
+  }
 
   // Calculate scores
   const totalLightsNear = workingLightsCount + faultyLightsCount;
